@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Grupos Académicos</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .input-group {
+            margin: 15px 0;
+        }
+
+        input[type="file"], input[type="number"] {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        .grupo {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f8f8f8;
+        }
+
+        .participante {
+            display: inline-block;
+            margin: 5px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+
+        .mujer {
+            background: #ffd1dc;
+            color: #c41e3a;
+        }
+
+        .hombre {
+            background: #b3d9ff;
+            color: #0047ab;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Generador de Grupos Académicos</h1>
+        
+        <div class="input-group">
+            <label>Subir listado CSV:
+                <input type="file" id="csvInput" accept=".csv">
+            </label>
+        </div>
+        
+        <div class="input-group">
+            <label>Cantidad de grupos:
+                <input type="number" id="numGrupos" min="2" value="4">
+            </label>
+        </div>
+        
+        <button onclick="generarGrupos()">Generar Grupos</button>
+        <button onclick="location.reload()">Reiniciar</button>
+        
+        <div id="resultados"></div>
+    </div>
+
+    <script>
+        function parseCSV(text) {
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            const header = lines[0].split(';');
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const fields = lines[i].split(';');
+                if (fields.length >= 4) {
+                    data.push({
+                        nombre: fields[1].trim(),
+                        genero: fields[3].trim().toUpperCase() === 'F' ? 'mujer' : 'hombre'
+                    });
+                }
+            }
+            return data;
+        }
+
+        function distribuirParticipantes(participantes, numGrupos) {
+            const grupos = Array.from({length: numGrupos}, () => []);
+            const mujeres = participantes.filter(p => p.genero === 'mujer');
+            const hombres = participantes.filter(p => p.genero === 'hombre');
+
+            // Mezclar aleatoriamente
+            const shuffle = arr => arr.sort(() => Math.random() - 0.5);
+            shuffle(mujeres);
+            shuffle(hombres);
+
+            // Distribuir mujeres primero
+            mujeres.forEach((mujer, i) => {
+                grupos[i % numGrupos].push(mujer);
+            });
+
+            // Distribuir hombres
+            hombres.forEach((hombre, i) => {
+                grupos[i % numGrupos].push(hombre);
+            });
+
+            return grupos;
+        }
+
+        function generarGrupos() {
+            const fileInput = document.getElementById('csvInput');
+            const numGrupos = parseInt(document.getElementById('numGrupos').value);
+            
+            if (!fileInput.files[0]) {
+                alert('Primero sube el archivo CSV');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const participantes = parseCSV(e.target.result);
+                const grupos = distribuirParticipantes(participantes, numGrupos);
+                mostrarResultados(grupos);
+            };
+            reader.readAsText(fileInput.files[0], 'UTF-8');
+        }
+
+        function mostrarResultados(grupos) {
+            const contenedor = document.getElementById('resultados');
+            contenedor.innerHTML = '';
+            
+            grupos.forEach((grupo, index) => {
+                const divGrupo = document.createElement('div');
+                divGrupo.className = 'grupo';
+                divGrupo.innerHTML = `<h3>Grupo ${index + 1} (${grupo.length} integrantes)</h3>`;
+                
+                grupo.forEach(participante => {
+                    const span = document.createElement('span');
+                    span.className = `participante ${participante.genero}`;
+                    span.textContent = participante.nombre;
+                    divGrupo.appendChild(span);
+                });
+                
+                contenedor.appendChild(divGrupo);
+            });
+        }
+    </script>
+</body>
+</html>
